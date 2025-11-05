@@ -1,0 +1,376 @@
+
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI Interface
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local TitleLabel = Instance.new("TextLabel")
+local InfoScrollFrame = Instance.new("ScrollingFrame")
+local UIListLayout = Instance.new("UIListLayout")
+local RefreshButton = Instance.new("TextButton")
+local ExportButton = Instance.new("TextButton")
+local CloseButton = Instance.new("TextButton")
+local TabFrame = Instance.new("Frame")
+
+-- GUI Configuration
+ScreenGui.Name = "ServerInfoGUI"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Main Frame
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.05, 0, 0.05, 0)
+MainFrame.Size = UDim2.new(0, 600, 0, 500)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 15)
+Corner.Parent = MainFrame
+
+-- Title
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Parent = MainFrame
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 20, 0, 10)
+TitleLabel.Size = UDim2.new(1, -140, 0, 40)
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.Text = "🖥️ Server Information"
+TitleLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+TitleLabel.TextSize = 22
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Refresh Button
+RefreshButton.Name = "RefreshButton"
+RefreshButton.Parent = MainFrame
+RefreshButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+RefreshButton.Position = UDim2.new(1, -120, 0, 10)
+RefreshButton.Size = UDim2.new(0, 35, 0, 35)
+RefreshButton.Font = Enum.Font.SourceSansBold
+RefreshButton.Text = "🔄"
+RefreshButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+RefreshButton.TextSize = 16
+
+local RefreshCorner = Instance.new("UICorner")
+RefreshCorner.CornerRadius = UDim.new(0, 8)
+RefreshCorner.Parent = RefreshButton
+
+-- Export Button
+ExportButton.Name = "ExportButton"
+ExportButton.Parent = MainFrame
+ExportButton.BackgroundColor3 = Color3.fromRGB(150, 100, 50)
+ExportButton.Position = UDim2.new(1, -80, 0, 10)
+ExportButton.Size = UDim2.new(0, 35, 0, 35)
+ExportButton.Font = Enum.Font.SourceSansBold
+ExportButton.Text = "📋"
+ExportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ExportButton.TextSize = 16
+
+local ExportCorner = Instance.new("UICorner")
+ExportCorner.CornerRadius = UDim.new(0, 8)
+ExportCorner.Parent = ExportButton
+
+-- Close Button
+CloseButton.Name = "CloseButton"
+CloseButton.Parent = MainFrame
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.Position = UDim2.new(1, -40, 0, 10)
+CloseButton.Size = UDim2.new(0, 35, 0, 35)
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.Text = "✕"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 16
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseButton
+
+-- ScrollFrame for information
+InfoScrollFrame.Name = "InfoScrollFrame"
+InfoScrollFrame.Parent = MainFrame
+InfoScrollFrame.BackgroundColor3 = Color3.fromRGB(30, 35, 45)
+InfoScrollFrame.Position = UDim2.new(0, 20, 0, 60)
+InfoScrollFrame.Size = UDim2.new(1, -40, 1, -80)
+InfoScrollFrame.ScrollBarThickness = 12
+InfoScrollFrame.BorderSizePixel = 0
+
+local ScrollCorner = Instance.new("UICorner")
+ScrollCorner.CornerRadius = UDim.new(0, 10)
+ScrollCorner.Parent = InfoScrollFrame
+
+-- Layout
+UIListLayout.Parent = InfoScrollFrame
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 5)
+
+-- Variables to store information
+local serverInfo = {}
+
+-- Function to create information section
+local function createInfoSection(title, items, color)
+    local SectionFrame = Instance.new("Frame")
+    SectionFrame.Name = title .. "Section"
+    SectionFrame.Parent = InfoScrollFrame
+    SectionFrame.BackgroundColor3 = Color3.fromRGB(40, 45, 55)
+    SectionFrame.Size = UDim2.new(1, -10, 0, 0)
+    SectionFrame.AutomaticSize = Enum.AutomaticSize.Y
+    
+    local SectionCorner = Instance.new("UICorner")
+    SectionCorner.CornerRadius = UDim.new(0, 8)
+    SectionCorner.Parent = SectionFrame
+    
+    local SectionLayout = Instance.new("UIListLayout")
+    SectionLayout.Parent = SectionFrame
+    SectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    SectionLayout.Padding = UDim.new(0, 3)
+    
+    local Padding = Instance.new("UIPadding")
+    Padding.Parent = SectionFrame
+    Padding.PaddingTop = UDim.new(0, 10)
+    Padding.PaddingBottom = UDim.new(0, 10)
+    Padding.PaddingLeft = UDim.new(0, 15)
+    Padding.PaddingRight = UDim.new(0, 15)
+    
+    -- Section Title
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Name = "SectionTitle"
+    TitleLabel.Parent = SectionFrame
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Size = UDim2.new(1, 0, 0, 25)
+    TitleLabel.Font = Enum.Font.SourceSansBold
+    TitleLabel.Text = title
+    TitleLabel.TextColor3 = color or Color3.fromRGB(255, 200, 100)
+    TitleLabel.TextSize = 16
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.LayoutOrder = 1
+    
+    -- Section Items
+    local itemOrder = 2
+    for key, value in pairs(items) do
+        local ItemLabel = Instance.new("TextLabel")
+        ItemLabel.Name = key .. "Item"
+        ItemLabel.Parent = SectionFrame
+        ItemLabel.BackgroundTransparency = 1
+        ItemLabel.Size = UDim2.new(1, 0, 0, 20)
+        ItemLabel.Font = Enum.Font.SourceSans
+        ItemLabel.Text = "• " .. key .. ": " .. tostring(value)
+        ItemLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        ItemLabel.TextSize = 13
+        ItemLabel.TextXAlignment = Enum.TextXAlignment.Left
+        ItemLabel.TextWrapped = true
+        ItemLabel.LayoutOrder = itemOrder
+        itemOrder = itemOrder + 1
+    end
+end
+
+-- Function to get game information
+local function getGameInfo()
+    local gameInfo = {}
+    
+    pcall(function()
+        gameInfo["Game Name"] = MarketplaceService:GetProductInfo(game.PlaceId).Name
+        gameInfo["Description"] = MarketplaceService:GetProductInfo(game.PlaceId).Description or "No description"
+        gameInfo["Creator"] = MarketplaceService:GetProductInfo(game.PlaceId).Creator.Name
+    end)
+    
+    gameInfo["Place ID"] = game.PlaceId
+    gameInfo["Game ID"] = game.GameId
+    gameInfo["Job ID"] = game.JobId
+    gameInfo["Version"] = game.PlaceVersion or "Unknown"
+    
+    return gameInfo
+end
+
+-- Function to get players information
+local function getPlayersInfo()
+    local playersInfo = {}
+    local playersList = {}
+    
+    playersInfo["Total Players"] = #Players:GetPlayers()
+    playersInfo["Max Players"] = Players.MaxPlayers
+    
+    for i, player in pairs(Players:GetPlayers()) do
+        table.insert(playersList, player.Name .. " (ID: " .. player.UserId .. ")")
+    end
+    
+    playersInfo["Player List"] = table.concat(playersList, ", ")
+    
+    return playersInfo
+end
+
+-- Function to get performance information
+local function getPerformanceInfo()
+    local perfInfo = {}
+    
+    perfInfo["Current FPS"] = math.floor(1 / RunService.Heartbeat:Wait())
+    perfInfo["Ping"] = math.floor(LocalPlayer:GetNetworkPing() * 1000) .. "ms"
+    
+    pcall(function()
+        local memory = Stats:GetTotalMemoryUsageMb()
+        perfInfo["Memory Usage"] = math.floor(memory) .. "MB"
+    end)
+    
+    pcall(function()
+        perfInfo["Data Received"] = math.floor(Stats.Network.ServerStatsItem["Data Received"].Value) .. " bytes"
+        perfInfo["Data Sent"] = math.floor(Stats.Network.ServerStatsItem["Data Sent"].Value) .. " bytes"
+    end)
+    
+    return perfInfo
+end
+
+-- Function to get workspace information
+local function getWorkspaceInfo()
+    local workspaceInfo = {}
+    
+    workspaceInfo["Gravity"] = Workspace.Gravity
+    workspaceInfo["FallenPartsDestroyHeight"] = Workspace.FallenPartsDestroyHeight
+    workspaceInfo["StreamingEnabled"] = tostring(Workspace.StreamingEnabled)
+    
+    local partCount = 0
+    local function countParts(parent)
+        for _, child in pairs(parent:GetChildren()) do
+            if child:IsA("BasePart") then
+                partCount = partCount + 1
+            end
+            countParts(child)
+        end
+    end
+    countParts(Workspace)
+    
+    workspaceInfo["Total Parts"] = partCount
+    
+    return workspaceInfo
+end
+
+-- Function to get lighting information
+local function getLightingInfo()
+    local lightingInfo = {}
+    
+    lightingInfo["Brightness"] = Lighting.Brightness
+    lightingInfo["Ambient"] = tostring(Lighting.Ambient)
+    lightingInfo["ColorShift_Top"] = tostring(Lighting.ColorShift_Top)
+    lightingInfo["ColorShift_Bottom"] = tostring(Lighting.ColorShift_Bottom)
+    lightingInfo["OutdoorAmbient"] = tostring(Lighting.OutdoorAmbient)
+    lightingInfo["ClockTime"] = Lighting.ClockTime
+    lightingInfo["GeographicLatitude"] = Lighting.GeographicLatitude
+    
+    return lightingInfo
+end
+
+-- Function to get security information
+local function getSecurityInfo()
+    local securityInfo = {}
+    
+    pcall(function()
+        securityInfo["FilteringEnabled"] = tostring(Workspace.FilteringEnabled)
+    end)
+    
+    securityInfo["LocalPlayer Admin"] = tostring(LocalPlayer:GetRankInGroup(0) > 0)
+    securityInfo["Filtered Chat"] = "Active"
+    
+    -- Check security services
+    local hasServerStorage = game:GetService("ServerStorage") ~= nil
+    securityInfo["ServerStorage Accessible"] = tostring(hasServerStorage)
+    
+    return securityInfo
+end
+
+-- Main function to collect all information
+local function collectServerInfo()
+    -- Clear previous information
+    for _, child in pairs(InfoScrollFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    -- Collect and display information
+    createInfoSection("🎮 Game Information", getGameInfo(), Color3.fromRGB(100, 200, 255))
+    createInfoSection("👥 Players", getPlayersInfo(), Color3.fromRGB(150, 255, 150))
+    createInfoSection("⚡ Performance", getPerformanceInfo(), Color3.fromRGB(255, 200, 100))
+    createInfoSection("🌍 Workspace", getWorkspaceInfo(), Color3.fromRGB(255, 150, 200))
+    createInfoSection("💡 Lighting", getLightingInfo(), Color3.fromRGB(255, 255, 150))
+    createInfoSection("🔒 Security", getSecurityInfo(), Color3.fromRGB(255, 100, 100))
+    
+    -- Additional system information
+    local systemInfo = {
+        ["Current Date/Time"] = os.date("%m/%d/%Y %H:%M:%S"),
+        ["Game Time"] = math.floor(tick() - game.Players.LocalPlayer.AccountAge * 86400) .. "s",
+        ["Platform"] = game.Players.LocalPlayer.OsPlatform or "Unknown"
+    }
+    createInfoSection("💻 System", systemInfo, Color3.fromRGB(200, 150, 255))
+    
+    print("📊 Server information updated!")
+end
+
+-- Function to export information
+local function exportInfo()
+    local exportText = "=== ROBLOX SERVER INFORMATION ===\n\n"
+    exportText = exportText .. "Game: " .. (MarketplaceService:GetProductInfo(game.PlaceId).Name or "Unknown") .. "\n"
+    exportText = exportText .. "Place ID: " .. game.PlaceId .. "\n"
+    exportText = exportText .. "Players: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers .. "\n"
+    exportText = exportText .. "Date: " .. os.date("%m/%d/%Y %H:%M:%S") .. "\n\n"
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        exportText = exportText .. "- " .. player.Name .. " (ID: " .. player.UserId .. ")\n"
+    end
+    
+    -- Copy to clipboard (if supported)
+    pcall(function()
+        setclipboard(exportText)
+        print("📋 Information copied to clipboard!")
+    end)
+    
+    print("📤 Exported information:")
+    print(exportText)
+end
+
+-- Events
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+RefreshButton.MouseButton1Click:Connect(function()
+    collectServerInfo()
+    RefreshButton.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+    wait(0.3)
+    RefreshButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+end)
+
+ExportButton.MouseButton1Click:Connect(function()
+    exportInfo()
+    ExportButton.BackgroundColor3 = Color3.fromRGB(255, 200, 100)
+    wait(0.3)
+    ExportButton.BackgroundColor3 = Color3.fromRGB(150, 100, 50)
+end)
+
+-- Auto-update every 30 seconds
+spawn(function()
+    while ScreenGui.Parent do
+        wait(30)
+        if ScreenGui.Parent then
+            collectServerInfo()
+        end
+    end
+end)
+
+-- Initialize
+collectServerInfo()
+
+print("🖥️ Server Info Scanner loaded successfully!")
+print("📊 Information collected and automatically updated")
+print("🔄 Use the refresh button to manually update")
+print("📋 Use the export button to copy information")
