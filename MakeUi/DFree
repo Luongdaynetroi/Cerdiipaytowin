@@ -1,1 +1,177 @@
+local DFree = {}
 
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+function DFree:CreateWindow(config)
+    local window = {}
+    window.Title = config.Title or "DFree UI"
+    window.ScreenGui = Instance.new("ScreenGui")
+    window.ScreenGui.Name = "DFree"
+    window.ScreenGui.Parent = CoreGui
+
+    window.MainFrame = Instance.new("Frame")
+    window.MainFrame.Name = "MainFrame"
+    window.MainFrame.Size = UDim2.new(0, 400, 0, 300)
+    window.MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+    window.MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    window.MainFrame.BorderSizePixel = 0
+    window.MainFrame.Parent = window.ScreenGui
+
+    -- Title bar
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Size = UDim2.new(1, 0, 0, 30)
+    TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    TitleBar.Parent = window.MainFrame
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Text = window.Title
+    TitleLabel.Size = UDim2.new(1, -30, 1, 0)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextSize = 14
+    TitleLabel.Font = Enum.Font.SourceSansBold
+    TitleLabel.Parent = TitleBar
+
+    -- Close button
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Text = "X"
+    CloseButton.Size = UDim2.new(0, 30, 1, 0)
+    CloseButton.Position = UDim2.new(1, -30, 0, 0)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.Parent = TitleBar
+    CloseButton.MouseButton1Click:Connect(function()
+        window.ScreenGui:Destroy()
+    end)
+
+    -- Dragging
+    local dragging = false
+    local dragInput
+    local dragStart
+    local startPos
+
+    TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = window.MainFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    TitleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            window.MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    -- Container for elements
+    local Container = Instance.new("ScrollingFrame")
+    Container.Size = UDim2.new(1, 0, 1, -30)
+    Container.Position = UDim2.new(0, 0, 0, 30)
+    Container.BackgroundTransparency = 1
+    Container.ScrollBarThickness = 6
+    Container.Parent = window.MainFrame
+
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.Padding = UDim.new(0, 5)
+    UIListLayout.Parent = Container
+
+    window.Container = Container
+    window.Elements = {}
+
+    function window:AddToggle(config)
+        local toggle = {}
+        toggle.Name = config.Name or "Toggle"
+        toggle.Value = config.Default or false
+        toggle.Callback = config.Callback or function() end
+
+        local ToggleFrame = Instance.new("Frame")
+        ToggleFrame.Size = UDim2.new(1, -10, 0, 40)
+        ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        ToggleFrame.BorderSizePixel = 0
+        ToggleFrame.Parent = window.Container
+
+        local ToggleLabel = Instance.new("TextLabel")
+        ToggleLabel.Text = toggle.Name
+        ToggleLabel.Size = UDim2.new(1, -50, 1, 0)
+        ToggleLabel.BackgroundTransparency = 1
+        ToggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ToggleLabel.TextSize = 14
+        ToggleLabel.Font = Enum.Font.SourceSans
+        ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        ToggleLabel.Parent = ToggleFrame
+
+        local ToggleButton = Instance.new("Frame")
+        ToggleButton.Size = UDim2.new(0, 40, 0, 20)
+        ToggleButton.Position = UDim2.new(1, -45, 0.5, -10)
+        ToggleButton.BackgroundColor3 = toggle.Value and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(100, 100, 100)
+        ToggleButton.BorderSizePixel = 0
+        ToggleButton.Parent = ToggleFrame
+
+        local ToggleCircle = Instance.new("Frame")
+        ToggleCircle.Size = UDim2.new(0, 16, 0, 16)
+        ToggleCircle.Position = toggle.Value and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+        ToggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        ToggleCircle.BorderSizePixel = 0
+        ToggleCircle.Parent = ToggleButton
+
+        ToggleFrame.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                toggle.Value = not toggle.Value
+                TweenService:Create(ToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = toggle.Value and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(100, 100, 100)}):Play()
+                TweenService:Create(ToggleCircle, TweenInfo.new(0.2), {Position = toggle.Value and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)}):Play()
+                toggle.Callback(toggle.Value)
+            end
+        end)
+
+        table.insert(window.Elements, toggle)
+        return toggle
+    end
+
+    function window:AddButton(config)
+        local button = {}
+        button.Name = config.Name or "Button"
+        button.Callback = config.Callback or function() end
+
+        local ButtonFrame = Instance.new("Frame")
+        ButtonFrame.Size = UDim2.new(1, -10, 0, 40)
+        ButtonFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        ButtonFrame.BorderSizePixel = 0
+        ButtonFrame.Parent = window.Container
+
+        local ButtonLabel = Instance.new("TextButton")
+        ButtonLabel.Text = button.Name
+        ButtonLabel.Size = UDim2.new(1, 0, 1, 0)
+        ButtonLabel.BackgroundTransparency = 1
+        ButtonLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ButtonLabel.TextSize = 14
+        ButtonLabel.Font = Enum.Font.SourceSans
+        ButtonLabel.Parent = ButtonFrame
+
+        ButtonLabel.MouseButton1Click:Connect(function()
+            button.Callback()
+        end)
+
+        table.insert(window.Elements, button)
+        return button
+    end
+
+    return window
+end
+
+return DFree
