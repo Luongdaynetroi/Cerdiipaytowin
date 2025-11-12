@@ -1,5 +1,5 @@
--- redzlib v1.4.0 - Enhanced with New Features
--- Changelog: Added loading animation, smooth transitions, search bar, theme editor tab, improved button animations, fixed tab naming
+-- redzlib v1.5.0 - Advanced Features Update
+-- Changelog: Added auto-save toggle, notification system, element groups (accordion), loading animation, smooth transitions, search bar, theme editor, enhanced UI organization
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
@@ -63,7 +63,7 @@ local redzlib = {
 		}
 	},
 	Info = {
-		Version = "1.4.0" -- Enhanced with new features
+		Version = "1.5.0" -- Advanced features update
 	},
 	Save = {
 		UISize = {450, 300},
@@ -908,6 +908,7 @@ local UIScale = ViewportSize.Y / 450
 
 local Settings = redzlib.Settings
 local Flags = redzlib.Flags
+local AutoSaveEnabled = true
 
 local SetProps, SetChildren, InsertTheme, Create do
 	InsertTheme = function(Instance, Type)
@@ -1088,16 +1089,15 @@ local GetFlag, SetFlag, CheckFlag do
 	
 	local db
 	Connection.FlagsChanged:Connect(function(Flag, Value)
+		if not AutoSaveEnabled then return end
 		local ScriptFile = Settings.ScriptFile
 		if not db and ScriptFile and writefile then
 			db=true;task.wait(0.1);db=false
-			
+
 			local Success, Encoded = pcall(function()
-				-- local _Flags = {}
-				-- for _,Flag in pairs(Flags) do _Flags[_] = Flag.Value end
 				return HttpService:JSONEncode(Flags)
 			end)
-			
+
 			if Success then
 				local Success = pcall(writefile, ScriptFile, Encoded)
 				if Success then
@@ -1423,6 +1423,79 @@ end
 function redzlib:SetScale(NewScale)
 	NewScale = ViewportSize.Y / math.clamp(NewScale, 300, 2000)
 	UIScale, ScreenGui.Scale.Scale = NewScale, NewScale
+end
+
+function redzlib:MakeNotification(Configs)
+	local Title = Configs.Title or "Notification"
+	local Text = Configs.Text or ""
+	local Time = Configs.Time or 3
+	local Icon = Configs.Icon or ""
+
+	local NotificationFrame = Create("Frame", ScreenGui, {
+		Size = UDim2.new(0, 300, 0, 80),
+		Position = UDim2.new(1, 310, 1, -90),
+		BackgroundColor3 = Theme["Color Hub 2"],
+		BackgroundTransparency = 0.1
+	})Make("Corner", NotificationFrame, UDim.new(0, 8))Make("Stroke", NotificationFrame)
+
+	local IconLabel = Create("ImageLabel", NotificationFrame, {
+		Size = UDim2.new(0, 24, 0, 24),
+		Position = UDim2.new(0, 10, 0, 10),
+		Image = redzlib:GetIcon(Icon),
+		BackgroundTransparency = 1
+	})
+
+	local TitleLabel = InsertTheme(Create("TextLabel", NotificationFrame, {
+		Size = UDim2.new(1, -44, 0, 20),
+		Position = UDim2.new(0, 40, 0, 8),
+		Text = Title,
+		TextColor3 = Theme["Color Text"],
+		TextSize = 14,
+		TextXAlignment = "Left",
+		Font = Enum.Font.GothamBold,
+		BackgroundTransparency = 1
+	}), "Text")
+
+	local TextLabel = InsertTheme(Create("TextLabel", NotificationFrame, {
+		Size = UDim2.new(1, -44, 0, 40),
+		Position = UDim2.new(0, 40, 0, 28),
+		Text = Text,
+		TextColor3 = Theme["Color Dark Text"],
+		TextSize = 12,
+		TextXAlignment = "Left",
+		TextWrapped = true,
+		Font = Enum.Font.Gotham,
+		BackgroundTransparency = 1
+	}), "DarkText")
+
+	local ProgressBar = Create("Frame", NotificationFrame, {
+		Size = UDim2.new(1, 0, 0, 2),
+		Position = UDim2.new(0, 0, 1, -2),
+		BackgroundColor3 = Theme["Color Stroke"]
+	})Make("Corner", ProgressBar, UDim.new(0, 1))
+
+	local ProgressFill = Create("Frame", ProgressBar, {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundColor3 = Theme["Color Theme"]
+	})Make("Corner", ProgressFill, UDim.new(0, 1))
+
+	-- Animate in
+	CreateTween({NotificationFrame, "Position", UDim2.new(1, -310, 1, -90), 0.5})
+
+	-- Progress animation
+	task.spawn(function()
+		local startTime = tick()
+		while tick() - startTime < Time do
+			local progress = (tick() - startTime) / Time
+			ProgressFill.Size = UDim2.new(1 - progress, 0, 1, 0)
+			task.wait(0.01)
+		end
+		-- Animate out
+		CreateTween({NotificationFrame, "Position", UDim2.new(1, 310, 1, -90), 0.5, true})
+		NotificationFrame:Destroy()
+	end)
+
+	return NotificationFrame
 end
 
 function redzlib:MakeWindow(Configs)
@@ -1791,6 +1864,9 @@ function redzlib:MakeWindow(Configs)
 		elseif type(Val1) == "string" then
 			Title.Text = Val1
 		end
+	end
+	function Window:SetAutoSave(Enabled)
+		AutoSaveEnabled = Enabled
 	end
 	function Window:Dialog(Configs)
 		if MainFrame:FindFirstChild("Dialog") then return end
@@ -2874,6 +2950,136 @@ function redzlib:MakeWindow(Configs)
 			})
 
 			return ThemeDropdown
+		end
+
+		function Tab:AddElementGroup(Configs)
+			local GroupName = Configs.Name or Configs.Title or "Group"
+			local DefaultOpen = Configs.Open or false
+
+			local GroupFrame = Create("Frame", Container, {
+				Size = UDim2.new(1, 0, 0, 30),
+				BackgroundTransparency = 1,
+				Name = "ElementGroup"
+			})
+
+			local HeaderButton = Make("Button", GroupFrame, {
+				Size = UDim2.new(1, 0, 0, 30)
+			})Make("Corner", HeaderButton, UDim.new(0, 6))
+
+			local HeaderTitle = InsertTheme(Create("TextLabel", HeaderButton, {
+				Size = UDim2.new(1, -30, 1, 0),
+				Position = UDim2.new(0, 10, 0, 0),
+				Text = GroupName,
+				TextColor3 = Theme["Color Text"],
+				TextSize = 12,
+				TextXAlignment = "Left",
+				Font = Enum.Font.GothamBold,
+				BackgroundTransparency = 1
+			}), "Text")
+
+			local ArrowIcon = Create("ImageLabel", HeaderButton, {
+				Size = UDim2.new(0, 16, 0, 16),
+				Position = UDim2.new(1, -20, 0.5),
+				AnchorPoint = Vector2.new(1, 0.5),
+				Image = "rbxassetid://10709790948",
+				BackgroundTransparency = 1,
+				ImageColor3 = Theme["Color Text"]
+			})
+
+			local ContentFrame = Create("Frame", GroupFrame, {
+				Size = UDim2.new(1, 0, 0, 0),
+				Position = UDim2.new(0, 0, 0, 30),
+				BackgroundTransparency = 1,
+				ClipsDescendants = true
+			})
+
+			local ContentList = Create("UIListLayout", ContentFrame, {
+				Padding = UDim.new(0, 5),
+				SortOrder = "LayoutOrder"
+			})
+
+			local ContentPadding = Create("UIPadding", ContentFrame, {
+				PaddingLeft = UDim.new(0, 10),
+				PaddingRight = UDim.new(0, 10),
+				PaddingTop = UDim.new(0, 5),
+				PaddingBottom = UDim.new(0, 5)
+			})
+
+			local IsOpen = DefaultOpen
+			local function ToggleGroup()
+				IsOpen = not IsOpen
+				if IsOpen then
+					CreateTween({ArrowIcon, "Rotation", 90, 0.2})
+					local contentHeight = ContentList.AbsoluteContentSize.Y + 10
+					CreateTween({ContentFrame, "Size", UDim2.new(1, 0, 0, contentHeight), 0.2})
+					CreateTween({GroupFrame, "Size", UDim2.new(1, 0, 0, 30 + contentHeight), 0.2})
+				else
+					CreateTween({ArrowIcon, "Rotation", 0, 0.2})
+					CreateTween({ContentFrame, "Size", UDim2.new(1, 0, 0, 0), 0.2})
+					CreateTween({GroupFrame, "Size", UDim2.new(1, 0, 0, 30), 0.2})
+				end
+			end
+
+			HeaderButton.Activated:Connect(ToggleGroup)
+			if DefaultOpen then ToggleGroup() end
+
+			local ElementGroup = {
+				Frame = GroupFrame,
+				Content = ContentFrame,
+				Toggle = ToggleGroup,
+				IsOpen = function() return IsOpen end
+			}
+
+			-- Create scoped functions for the group
+			function ElementGroup:AddToggle(Configs)
+				local Element = Tab:AddToggle(Configs)
+				if Element.Frame then
+					Element.Frame.Parent = ContentFrame
+				end
+				return Element
+			end
+
+			function ElementGroup:AddButton(Configs)
+				local Element = Tab:AddButton(Configs)
+				if Element.Frame then
+					Element.Frame.Parent = ContentFrame
+				end
+				return Element
+			end
+
+			function ElementGroup:AddSlider(Configs)
+				local Element = Tab:AddSlider(Configs)
+				if Element.Frame then
+					Element.Frame.Parent = ContentFrame
+				end
+				return Element
+			end
+
+			function ElementGroup:AddDropdown(Configs)
+				local Element = Tab:AddDropdown(Configs)
+				if Element.Frame then
+					Element.Frame.Parent = ContentFrame
+				end
+				return Element
+			end
+
+			function ElementGroup:AddTextbox(Configs)
+				local Element = Tab:AddTextbox(Configs)
+				if Element.Frame then
+					Element.Frame.Parent = ContentFrame
+				end
+				return Element
+			end
+
+			function ElementGroup:AddParagraph(Configs)
+				local Element = Tab:AddParagraph(Configs)
+				if Element.Frame then
+					Element.Frame.Parent = ContentFrame
+				end
+				return Element
+			end
+
+			return ElementGroup
 		end
 		return Tab
 	end
