@@ -1,0 +1,79 @@
+local DFree = loadstring(game:HttpGet("https://raw.githubusercontent.com/Luongdaynetroi/Cerdiipaytowin/refs/heads/main/MakeUi/DFree"))()
+
+local Window = DFree:CreateWindow({
+    Title = "DFree UI Demo",
+    Folder = "DFreeDemo",
+    Size = UDim2.new(0, 600, 0, 400)
+})
+
+local Tab1 = Window:Tab({
+    Title = "Main",
+    Icon = "home"
+})
+
+Tab1:Paragraph({
+    Title = "Welcome to DFree UI",
+    Desc = "This is a modern Roblox UI library with many features."
+})
+
+Tab1:Button({
+    Title = "Click Me",
+    Icon = "mouse-pointer-click",
+    Callback = function()
+        DFree:Notify({
+            Title = "Button Clicked",
+            Content = "You clicked the button!",
+            Icon = "check"
+        })
+    end
+})
+
+Tab1:Toggle({
+    Title = "Enable Feature",
+    Desc = "Toggle this feature on/off",
+    Value = true,
+    Callback = function(Value)
+        print("Toggle:", Value)
+    end
+})
+
+Tab1:Slider({
+    Title = "Volume",
+    Desc = "Adjust the volume level",
+    Value = {Min = 0, Max = 100, Default = 50},
+    Callback = function(Value)
+        print("Volume:", Value)
+    end
+})
+
+local Tab2 = Window:Tab({
+    Title = "Settings",
+    Icon = "settings"
+})
+
+Tab2:Input({
+    Title = "Username",
+    Placeholder = "Enter your username",
+    Callback = function(Value)
+        print("Username:", Value)
+    end
+})
+
+Tab2:Dropdown({
+    Title = "Theme",
+    Values = {"Dark", "Light", "Rose", "Plant"},
+    Value = "Dark",
+    Callback = function(Value)
+        print("Theme:", Value)
+    end
+})
+
+Tab2:Colorpicker({
+    Title = "Accent Color",
+    Default = Color3.fromRGB(255, 0, 150),
+    Callback = function(Color, Transparency)
+        print("Color:", Color, "Transparency:", Transparency)
+    end
+})
+
+print("DFree UI Demo loaded successfully!")
