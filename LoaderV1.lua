@@ -1,4 +1,6 @@
--- LVM ViolenceDistrict ESP v1.1(BETA)
+-- giúp tôi học code script hack rbl và nhiều thứ hơn nữa
+-- Client-side: Player ESP + Generator Highlight (no billboard) + Selector + Teleport (client-side only)
+-- NOTE: Teleport chỉ di chuyển character client (LocalPlayer), không gửi remote.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -410,4 +412,3 @@ game:BindToClose(function() cleanupAll() end)
 listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(createOrUpdateUIListCanvas)
 
 print("LVM ESP v3.4 loaded — Player ESP + Generator highlight + Teleport selector.")
-
