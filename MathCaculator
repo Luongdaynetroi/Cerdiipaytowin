@@ -1,0 +1,160 @@
+-- Endless Math Quiz with Win Streak (Respawn Safe)
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- Remove old GUI
+local function clearOldGui()
+	local oldGui = player.PlayerGui:FindFirstChild("MathQuizGui")
+	if oldGui then
+		oldGui:Destroy()
+	end
+end
+
+local function createQuiz()
+	clearOldGui()
+
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "MathQuizGui"
+	gui.ResetOnSpawn = false
+	gui.Parent = player.PlayerGui
+
+	-- Open Button
+	local openButton = Instance.new("TextButton")
+	openButton.Size = UDim2.new(0, 140, 0, 40)
+	openButton.Position = UDim2.new(0, 20, 0.5, -20)
+	openButton.Text = "Math Quiz"
+	openButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+	openButton.Parent = gui
+
+	-- Quiz Frame
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 350, 0, 270)
+	frame.Position = UDim2.new(0.5, -175, 0.5, -135)
+	frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	frame.Visible = false
+	frame.Parent = gui
+
+	-- Close Button
+	local closeButton = Instance.new("TextButton")
+	closeButton.Size = UDim2.new(0, 30, 0, 30)
+	closeButton.Position = UDim2.new(1, -35, 0, 5)
+	closeButton.Text = "X"
+	closeButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+	closeButton.Parent = frame
+
+	-- Win Streak Label
+	local streak = 0
+	local streakLabel = Instance.new("TextLabel")
+	streakLabel.Size = UDim2.new(1, -20, 0, 30)
+	streakLabel.Position = UDim2.new(0, 10, 0, 35)
+	streakLabel.Text = "Win Streak: 0"
+	streakLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+	streakLabel.TextScaled = true
+	streakLabel.BackgroundTransparency = 1
+	streakLabel.Parent = frame
+
+	-- Question Label
+	local questionLabel = Instance.new("TextLabel")
+	questionLabel.Size = UDim2.new(1, -20, 0, 50)
+	questionLabel.Position = UDim2.new(0, 10, 0, 70)
+	questionLabel.TextColor3 = Color3.new(1, 1, 1)
+	questionLabel.TextScaled = true
+	questionLabel.BackgroundTransparency = 1
+	questionLabel.Parent = frame
+
+	-- Answer Buttons
+	local buttons = {}
+	for i = 1, 4 do
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(0.45, 0, 0, 40)
+		btn.Position = UDim2.new(
+			(i % 2 == 1) and 0.05 or 0.5,
+			0,
+			(i <= 2) and 0.45 or 0.65,
+			0
+		)
+		btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+		btn.TextColor3 = Color3.new(1, 1, 1)
+		btn.TextScaled = true
+		btn.Parent = frame
+		table.insert(buttons, btn)
+	end
+
+	-- Quiz Logic
+	local correctAnswer = 0
+
+	local function updateStreak()
+		streakLabel.Text = "Win Streak: " .. streak
+	end
+
+	local function generateQuestion()
+		local a = math.random(1, 20)
+		local b = math.random(1, 20)
+		local ops = {"+", "-", "Ã—"}
+		local op = ops[math.random(1, #ops)]
+
+		if op == "+" then
+			correctAnswer = a + b
+		elseif op == "-" then
+			correctAnswer = a - b
+		else
+			correctAnswer = a * b
+		end
+
+		questionLabel.Text = a .. " " .. op .. " " .. b .. " = ?"
+
+		local answers = {}
+		answers[math.random(1, 4)] = correctAnswer
+
+		for i = 1, 4 do
+			if not answers[i] then
+				answers[i] = correctAnswer + math.random(-10, 10)
+			end
+			buttons[i].Text = tostring(answers[i])
+		end
+	end
+
+	for _, btn in ipairs(buttons) do
+		btn.MouseButton1Click:Connect(function()
+			if tonumber(btn.Text) == correctAnswer then
+				streak += 1
+				btn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+			else
+				streak = 0
+				btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+			end
+
+			updateStreak()
+			task.wait(0.5)
+
+			for _, b in ipairs(buttons) do
+				b.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+			end
+
+			generateQuestion()
+		end)
+	end
+
+	openButton.MouseButton1Click:Connect(function()
+		frame.Visible = not frame.Visible
+		if frame.Visible then
+			generateQuestion()
+			updateStreak()
+		end
+	end)
+
+	closeButton.MouseButton1Click:Connect(function()
+		frame.Visible = false
+	end)
+end
+
+-- Initial create
+createQuiz()
+
+-- Recreate after death
+player.CharacterAdded:Connect(function()
+	task.wait(0.5)
+	createQuiz()
+end)
+Giải thích
